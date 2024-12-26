@@ -10,6 +10,10 @@
 // For compilers that support precompilation, includes <wx.h>.
 #include <wx/wxprec.h>
 
+#ifdef __BORLANDC__
+#pragma hdrstop
+#endif
+
 #ifndef WX_PRECOMP
 #include <wx/wx.h>
 #endif
@@ -25,6 +29,12 @@
 #include <wx/generic/prntdlgg.h>
 #include <wx/progdlg.h>
 #include <wx/paper.h>
+
+#if wxCHECK_VERSION(3, 1, 2)
+#include <wx/display.h>
+#else
+#include <wx/dcscreen.h>
+#endif
 
 #include <wx/stattext.h>
 #include <wx/statbox.h>
@@ -565,16 +575,20 @@ wxPdfPrinter::Setup(wxWindow* WXUNUSED(parent))
 void
 wxPdfPrinter::GetPdfScreenPPI(int* x, int* y)
 {
-  wxScreenDC dc;
+#if wxCHECK_VERSION(3, 1, 2)
+  wxDisplay display;
+#else
+  wxScreenDC display;
+#endif
 
   if (x)
   {
-    *x = dc.GetPPI().GetWidth();
+    *x = display.GetPPI().GetWidth();
   }
 
   if (y)
   {
-    *y = dc.GetPPI().GetHeight();
+    *y = display.GetPPI().GetHeight();
   }
 }
 
@@ -847,16 +861,20 @@ wxPdfPrintPreviewImpl::Print(bool interactive)
 void
 wxPdfPrintPreviewImpl::GetPdfScreenPPI(int* x, int* y)
 {
-  wxScreenDC dc;
+#if wxCHECK_VERSION(3, 1, 2)
+  wxDisplay display;
+#else
+  wxScreenDC display;
+#endif
 
   if (x)
   {
-    *x = dc.GetPPI().GetWidth();
+    *x = display.GetPPI().GetWidth();
   }
 
   if (y)
   {
-    *y = dc.GetPPI().GetHeight();
+    *y = display.GetPPI().GetHeight();
   }
 }
 

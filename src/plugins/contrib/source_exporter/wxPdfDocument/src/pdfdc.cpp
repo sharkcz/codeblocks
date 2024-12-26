@@ -12,6 +12,10 @@
 // For compilers that support precompilation, includes <wx/wx.h>.
 #include <wx/wxprec.h>
 
+#ifdef __BORLANDC__
+#pragma hdrstop
+#endif
+
 #ifndef WX_PRECOMP
 #include <wx/wx.h>
 #endif
@@ -24,6 +28,12 @@
 #include "wx/pdfdc.h"
 #include "wx/pdffontmanager.h"
 #include "wx/pdfutility.h"
+
+#if wxCHECK_VERSION(3, 1, 2)
+#include <wx/display.h>
+#else
+#include <wx/dcscreen.h>
+#endif
 
 #include <math.h>
 
@@ -186,8 +196,14 @@ wxPdfDCImpl::Init()
   m_ppi = 72;
   m_pdfDocument = NULL;
 
+#if wxCHECK_VERSION(3, 1, 2)
+  wxDisplay display;
+  m_ppiPdfFont = display.GetPPI().GetHeight();
+#else
   wxScreenDC screendc;
   m_ppiPdfFont = screendc.GetPPI().GetHeight();
+#endif
+
   m_mappingModeStyle = wxPDF_MAPMODESTYLE_STANDARD;
 
   m_cachedRGB = 0;
@@ -594,7 +610,7 @@ wxAffineMatrix2D
 wxPdfDCImpl::GetTransformMatrix() const
 {
   wxCHECK_MSG(m_pdfDocument, wxAffineMatrix2D(), wxS("Invalid PDF DC"));
-  return m_matrix; 
+  return m_matrix;
 }
 
 void
@@ -1007,23 +1023,7 @@ wxPdfDCImpl::DoDrawBitmap(const wxBitmap& bitmap, wxCoord x, wxCoord y, bool use
 void
 wxPdfDCImpl::DoDrawText(const wxString& text, wxCoord x, wxCoord y)
 {
-  if (text.Find(wxS('\n')) == wxNOT_FOUND)
-  {
-    // text contains a single line: just draw it
-    DoDrawRotatedText(text, x, y, 0.0);
-  }
-  else
-  {
-    // this is a multiline text: split it and print the lines one by one
-    wxCoord charH = GetCharHeight();
-    wxCoord curY = y;
-    wxStringTokenizer tok( text, "\n" );
-    while( tok.HasMoreTokens() ) {
-      wxString s = tok.GetNextToken();
-      DoDrawRotatedText(s, x, curY, 0.0);
-      curY += charH;
-    }
-  }
+  DoDrawRotatedText(text, x, y, 0.0);
 }
 
 void
@@ -1080,7 +1080,7 @@ wxPdfDCImpl::DoDrawRotatedText(const wxString& text, wxCoord x, wxCoord y, doubl
     }
     wxBrush previousBrush = GetBrush();
     SetBrush(wxBrush(m_textBackgroundColour));
-    SetupBrush();
+    SetupBrush(true);
     SetupAlpha();
     // draw rectangle line by line
     for (size_t lineNum = 0; lineNum < lines.size(); lineNum++)
@@ -1098,7 +1098,7 @@ wxPdfDCImpl::DoDrawRotatedText(const wxString& text, wxCoord x, wxCoord y, doubl
 
   m_pdfDocument->StartTransform();
   SetupTextAlpha();
-  
+
   // Draw all text line by line
   for (size_t lineNum = 0; lineNum < lines.size(); lineNum++)
   {
@@ -1489,14 +1489,14 @@ wxPdfDCImpl::MustSetCurrentBrush(const wxBrush& currentBrush) const
 }
 
 void
-wxPdfDCImpl::SetupPen()
+wxPdfDCImpl::SetupPen(bool force)
 {
   wxCHECK_RET(m_pdfDocument, wxS("Invalid PDF DC"));
   // pen
   const wxPen& curPen = GetPen();
   if (curPen != wxNullPen)
   {
-    if (MustSetCurrentPen(curPen))
+    if (force || MustSetCurrentPen(curPen))
     {
       wxPdfLineStyle style = m_pdfDocument->GetLineStyle();
       wxPdfArrayDouble dash;
@@ -1593,14 +1593,14 @@ wxPdfDCImpl::SetupPen()
 }
 
 void
-wxPdfDCImpl::SetupBrush()
+wxPdfDCImpl::SetupBrush(bool force)
 {
   wxCHECK_RET(m_pdfDocument, wxS("Invalid PDF DC"));
   // brush
   const wxBrush& curBrush = GetBrush();
   if (curBrush != wxNullBrush)
   {
-    if (MustSetCurrentBrush(curBrush))
+    if (force || MustSetCurrentBrush(curBrush))
     {
       wxColour brushColour = curBrush.GetColour();
       wxString pdfPatternName;
