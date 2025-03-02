@@ -20,6 +20,11 @@
 #ifndef BROWSEMARKS_H
 #define BROWSEMARKS_H
 
+#include "cbeditor.h"
+#include "cbstyledtextctrl.h"
+#include "editormanager.h"
+#include <wx/string.h>
+
 extern int gBrowse_MarkerId;
 extern int gBrowse_MarkerStyle;
 extern int GetBrowseMarkerId();
@@ -64,15 +69,13 @@ class BrowseMarks
     private:
         BrowseMarks();
 
-        //enum {MaxEntries = 20}; //(ph 2024/06/01)
-
         EditorManager* m_pEdMgr;
 
         wxString    m_filePath;
         wxString    m_fileShortName;
         int         m_currIndex;    //index of current cursor posn
         int         m_lastIndex;    //insertion index
-        wxArrayInt  m_EdPosnArray;
+        wxArrayInt  m_EdPosnArray;  // contains editor line numbers
 };
 
 #endif // BROWSEMARKS_H

@@ -1873,7 +1873,7 @@ void MainFrame::LoadViewLayout(const wxString& name, bool isTemp)
         wxAuiPaneInfoArray &panes = m_LayoutManager.GetAllPanes();
         const size_t paneCount = panes.GetCount();
         for (size_t i = 0; i < paneCount; ++i)
-            panes[i].caption = _(panes[i].caption);
+            panes[i].caption = wxGetTranslation(panes[i].caption);
     }
     else
     {
@@ -2805,7 +2805,6 @@ void MainFrame::OnFileNewWhat(wxCommandEvent& event)
     if (!ed || !project)
         return;
 
-    wxString oldname = ed->GetFilename();
     if (cbMessageBox(_("Do you want to add this new file in the active project (has to be saved first)?"),
                     _("Add file to project"),
                     wxYES_NO | wxICON_QUESTION) == wxID_YES &&
@@ -2919,7 +2918,6 @@ void MainFrame::DoOnFileOpen(bool bProject)
             if (FileFilters::GetFilterNameFromIndex(Filters, Index, Filter))
                 cfg->Write("/file_dialogs/file_new_open/filter", Filter);
 
-            wxString Test = dlg.GetDirectory();
             cfg->Write("/file_dialogs/file_new_open/directory", dlg.GetDirectory());
         }
 

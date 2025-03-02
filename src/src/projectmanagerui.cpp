@@ -33,6 +33,8 @@
 #endif
 
 #include <unordered_map>
+#include <vector>
+
 #include "wxstringhash.h"
 #include <wx/dataobj.h>
 #include <wx/dnd.h>
@@ -463,6 +465,23 @@ void ProjectManagerUI::RebuildTree()
         if ( cbProject* prj = pa->Item(i) )
             prj->SaveTreeState(m_pTree);
     }
+
+    // Save the path (excluding the root item) to the last visible item
+    // Saving the first puts it at the bottom of the window
+    std::vector <wxString> path;
+    wxTreeItemId item = m_pTree->GetFirstVisibleItem();
+    if (item.IsOk() && (item != m_pTree->GetRootItem()))
+    {
+        while (m_pTree->GetNextVisible(item).IsOk())
+            item = m_pTree->GetNextVisible(item);
+
+        while (item.IsOk() && (item != m_pTree->GetRootItem()))
+        {
+            path.push_back(m_pTree->GetItemText(item));
+            item = m_pTree->GetItemParent(item);
+        }
+    }
+
     m_pTree->DeleteAllItems();
     wxString title;
     bool read_only = false;
@@ -475,8 +494,10 @@ void ProjectManagerUI::RebuildTree()
                      &&  wxFile::Exists(ws_file.c_str())
                      && !wxFile::Access(ws_file.c_str(), wxFile::write) );
     }
-    if (title.IsEmpty())
+
+    if (title.empty())
         title = _("Workspace");
+
     m_TreeRoot = m_pTree->AddRoot(title, cbProjectTreeImages::WorkspaceIconIndex(read_only), cbProjectTreeImages::WorkspaceIconIndex(read_only));
 
     std::vector<cbProject*> prjv;
@@ -494,14 +515,37 @@ void ProjectManagerUI::RebuildTree()
         BuildProjectTree(prj, m_pTree, m_TreeRoot, m_TreeVisualState, pm->GetFilesGroupsAndMasks());
         m_pTree->SetItemBold(prj->GetProjectNode(), prj == pm->GetActiveProject());
     }
-    m_pTree->Expand(m_TreeRoot);
 
+    m_pTree->Expand(m_TreeRoot);
     for (int i = 0; i < count; ++i)
     {
         if ( cbProject* prj = pa->Item(i) )
             prj->RestoreTreeState(m_pTree);
     }
+
     UnfreezeTree();
+
+    // Restore the last visible item
+    item = m_TreeRoot;
+    for (std::vector <wxString>::const_reverse_iterator it = path.crbegin(); it != path.crend(); ++it)
+    {
+        wxTreeItemIdValue cookie;
+        wxTreeItemId child = m_pTree->GetFirstChild(item, cookie);
+        while (child.IsOk())
+        {
+            if (m_pTree->GetItemText(child) == *it)
+                break;
+
+            child = m_pTree->GetNextChild(item, cookie);
+        }
+
+        if (!child.IsOk())
+            break;
+
+        item = child;
+    }
+
+    m_pTree->EnsureVisible(item);
 
     const long time = timer.Time();
     if (time >= 100)
@@ -1147,7 +1191,6 @@ void ProjectManagerUI::RemoveFilesRecursively(wxTreeItemId& sel_id)
 {
     wxTreeItemIdValue cookie;
     wxTreeItemId child;
-    wxString filename;
     size_t i = 0;
     while (i < m_pTree->GetChildrenCount(sel_id))
     {
@@ -1182,7 +1225,6 @@ void ProjectManagerUI::OpenFilesRecursively(wxTreeItemId& sel_id)
 {
     wxTreeItemIdValue cookie;
     wxTreeItemId child;
-    wxString filename;
     size_t i = 0;
     while (i < m_pTree->GetChildrenCount(sel_id))
     {
@@ -3463,14 +3505,12 @@ static bool ProjectVirtualFolderDragged(cbProject* project, wxTreeCtrl* tree, wx
         for (size_t i = 0; i < oldArray.GetCount(); ++i)
         {
             wxString item = oldArray[i];
-            wxString toFolderStr;
             if (toFolderPath.StartsWith(fromFolderPath.BeforeFirst(sepChar)))
             {
                 // The virtual folder is dragged under same root
                 int posFrom = item.Find(fromFolderPath);
                 if (posFrom != wxNOT_FOUND)
                 {
-                    wxString fromFolderStr = item.Mid(posFrom);
                     item = item.Left(posFrom);
                     if (!item.IsEmpty())
                         newFolders.Add(item);
@@ -3508,7 +3548,6 @@ static bool ProjectVirtualFolderDragged(cbProject* project, wxTreeCtrl* tree, wx
                     }
                     else
                     {
-                        wxString temp = item.Left(pos);
                         newFolders.Add(item.Left(pos));
                         if (!toFolderPath.IsEmpty())
                             newFolders.Add(toFolderPath + item.Mid(pos));

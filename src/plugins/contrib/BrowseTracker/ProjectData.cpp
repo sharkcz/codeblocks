@@ -56,13 +56,13 @@ ProjectData::ProjectData(cbProject* pcbProject)
 {
     //ctor
     #if defined(LOGGING)
-    if (not pcbProject) asm("int3"); /*trap*/;
+    //if (not pcbProject) asm("int3"); /*trap*/;
     #endif
     if (not pcbProject) return;
     m_pCBProject = pcbProject;
     m_ProjectFilename = pcbProject->GetFilename();
     m_CurrIndexEntry = 0;
-    m_LastIndexEntry = Helpers::GetMaxEntries()-1;
+    m_LastIndexEntry = Helpers::GetMaxAllocEntries()-1;
     m_pEdMgr = Manager::Get()->GetEditorManager();
     m_ActivationCount = 0;
     m_bLayoutLoaded = false;
@@ -163,7 +163,7 @@ BrowseMarks* ProjectData::HashAddBrowse_Marks( const wxString fullPath )
 
     EditorBase* eb = m_pEdMgr->GetEditor(fullPath);
     #if defined(LOGGING)
-        if(not eb) asm("int3"); /*trap*/
+        //if(not eb) asm("int3"); /*trap*/
     #endif
     if(not eb) return 0;
     wxString filePath = eb->GetFilename();
