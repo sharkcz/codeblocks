@@ -1931,8 +1931,6 @@ void ProcessLanguageClient::LSP_Initialize(cbProject* pProject)
 
             wxString filename = pcbEd->GetFilename();
             UpdateCompilationDatabase(pProject, filename);
-            // cancel the changed time so clangd doesnt get restarted;
-////            SetCompileCommandsChangedTime(false);
         }
     }//for
 
@@ -2034,11 +2032,13 @@ bool ProcessLanguageClient::LSP_DidOpen(cbEditor* pcbEd)
 
     wxString strText = pCntl->GetText();
     //-const char* pText = strText.mb_str();        //works //(2022/01/17)
-    const char* pText = strText.ToUTF8();           //ollydbg  220115 did not solve illegal utf8char
+    //const char* pText = strText.ToUTF8();         //ollydbg  220115 did not solve illegal utf8char
 
     writeClientLog(StdString_Format("<<< LSP_DidOpen:%s", docuri.c_str()) );
 
-    try { DidOpen(docuri, string_ref(pText, strText.Length()) ); }
+    //-try { DidOpen(docuri, string_ref(pText, strText.Length()) ); }
+    try { DidOpen(docuri, string_ref(strText.ToUTF8().data(), strText.Length()) ); } //christo 1518
+
     catch(std::exception &err)
     {
         //printf("read error -> %s\nread -> %s\n ", e.what(), read.c_str());
@@ -4021,15 +4021,6 @@ void ProcessLanguageClient::UpdateCompilationDatabase(cbProject* pProject, wxStr
             // update compile_commands.json file
             jsonFile << jdb; //write file json object
             jsonFile.close();
-
-            /// This code un-needed after clangd version 12
-            ////        // updates before LSP is initialized should not set the LSP restart timer.
-            ////        // File opens after initialization have compile_commands already set
-            ////        // so filecount will be zero.
-            ////        // Ergo, the restart timer is set only when a new file is opened that
-            ////        // was not previously added to compile_commands.json
-            ////            if (GetLSP_Initialized())
-            ////                SetCompileCommandsChangedTime(true);
         }
         //(christo 2024/06/26)
         if(m_compileCommandsPopulated)
